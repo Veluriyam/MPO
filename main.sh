@@ -1,3 +1,11 @@
+export http_proxy="http://127.0.0.1:7897"
+export https_proxy="http://127.0.0.1:7897"
+export all_proxy="socks5://127.0.0.1:7897"
+export no_proxy="localhost,127.0.0.1,::1"
+
+
+
+
 BASE_MODEL='Qwen2.5-VL-7B' # Qwen2.5-VL-7B is implemented using vllm / or simply use gpt-4o-mini / gpt-4.1-nano
 OPTIM_MODEL='gpt-4o-mini' # gpt-4.1-nano
 MM_GENERATOR_MODEL='gpt-image'
@@ -14,7 +22,7 @@ BUDGET_PER_PROMPT=100
 LOG_DIR="./logs/$BASE_MODEL/$OPTIM_MODEL/$MM_GENERATOR_MODEL/${EXP_NAME}/${TASK}"
 
 python main.py \
-    --data_dir /c1/yumin/MMPO/MMPO/datasets/ \
+    --data_dir /workspace/yp/MPO/datasets \
     --task_name $TASK \
     --log_dir $LOG_DIR \
     --base_model_name $BASE_MODEL \

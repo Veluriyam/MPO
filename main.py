@@ -1,7 +1,10 @@
 import argparse
 from src.utils import *
 from src.runner import Runner
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 def parse_test_size(value):
     return None if value == "all" else int(value)

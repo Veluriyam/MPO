@@ -5,6 +5,25 @@ from .tasks import BaseTask
 from .utils import check_mm_type
 from .model.mmgenerator import MMGenerator
 
+def get_image_feature_extraction_prompt(image_path):
+    text_prompt = """Please answer the following four questions about the image to describe its features:
+Q1: What objects does this picture have?
+Q2: What do these objects look like?
+Q3: What is the background of this picture?
+Q4: What feelings do the background and objects show?
+
+Directly provide the answers combined as a pure text description without repeating the questions."""
+    
+    prompt = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": text_prompt},
+                {"type": "image", "image": image_path}
+            ],
+        },
+    ]
+    return prompt
 
 ### MPO: Cohesive Backpropagation
 def get_multimodal_analysis_prompt(text_prompt, mm_prompt_path, example_prompt, modality="image"):
@@ -431,16 +450,26 @@ class OptimizationModel:
         self.logger.info(f"{total_prompt}\n{'-' * 80}\n{response}\n\n")
 
     def get_example_prompt(self, examples, is_response=True):
-        example_prompt = []
-        for example in examples:
-            example_string = self._get_example_string(example, is_response)
-            example_content = [
-                {"type": "text", "text": f"<Example>\n{self.task.get_query(example)}\n"},
-                {"type": "text", "text": f"{example_string}\n</Example>\n"},
-            ]
-            example_prompt.extend(example_content)
+            example_prompt = []
+            for example in examples:
+                example_string = self._get_example_string(example, is_response)
+                
+                # 使用 XML 标签将图像特征独立包裹
+                mm_path = self.task.get_mm_path(example)
+                image_features_text = ""
+                if mm_path:
+                    features = self.extract_image_features(mm_path)
+                    if features:
+                        image_features_text = f"<Image_Features>\n{features}\n</Image_Features>\n"
+                
+                # 使用标签严格区分问题、图像特征和模型表现
+                example_content = [
+                    {"type": "text", "text": f"<Example>\n<Query>\n{self.task.get_query(example)}\n</Query>\n"},
+                    {"type": "text", "text": f"{image_features_text}<Model_Performance>\n{example_string}\n</Model_Performance>\n</Example>\n"},
+                ]
+                example_prompt.extend(example_content)
 
-        return example_prompt
+            return example_prompt
 
     def _format_answer(self, example):
         answer = self.task.get_answer(example)
@@ -455,3 +484,15 @@ class OptimizationModel:
         else:
             example_string = f"The Answer is \n{self._format_answer(example)}"
         return example_string
+    
+    def extract_image_features(self, image_path):
+        if not image_path:
+            return ""
+        
+        mm_type = check_mm_type(image_path)
+        if mm_type != "image":
+            return ""
+        
+        feature_prompt = get_image_feature_extraction_prompt(image_path)
+        description = self.model.generate(feature_prompt)
+        return description

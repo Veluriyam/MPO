@@ -9,7 +9,7 @@ from openai import AsyncOpenAI
 from tqdm.asyncio import tqdm_asyncio
 
 MODEL_DICT = {
-    "Qwen2.5-VL-7B": "Qwen/Qwen2.5-VL-7B-Instruct",
+    "Qwen2.5-VL-7B": "/workspace/yp/MPO/datasets/Qwen_Qwen2.5-VL-7B-Instruct",
     "InternVL3-8B": "OpenGVLab/InternVL3-8B",
     "Qwen3-8B": "Qwen/Qwen3-8B",
     "gemma-3-12b": "google/gemma-3-12b-it",

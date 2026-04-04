@@ -1,4 +1,4 @@
-MODEL_NAME="Qwen/Qwen2.5-VL-7B-Instruct"
+MODEL_NAME="/workspace/yp/MPO/datasets/Qwen_Qwen2.5-VL-7B-Instruct"
 
 echo "VLLM_API_KEY: $VLLM_API_KEY"
 ulimit -n 65535
@@ -21,7 +21,7 @@ $MODEL_NAME \
 --dtype auto \
 --port 1314$PORT_SUFFIX \
 --tensor-parallel-size $TENSOR_PARALLEL_SIZE \
---gpu-memory-utilization 0.45 \
+--gpu-memory-utilization 0.9 \
 --max_model_len 3000 \
 --limit-mm-per-prompt '{"image": 2, "video": 2}' \
 --trust-remote-code
