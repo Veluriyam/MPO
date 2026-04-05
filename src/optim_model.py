@@ -5,6 +5,9 @@ from .tasks import BaseTask
 from .utils import check_mm_type
 from .model.mmgenerator import MMGenerator
 
+# 导入新增的 RAG 模块
+from .rag_utils import RAGModule
+
 def get_image_feature_extraction_prompt(image_path):
     text_prompt = """Please answer the following four questions about the image to describe its features:
 Q1: What objects does this picture have?
@@ -44,12 +47,13 @@ You are a Prompt Failure Analysis Agent specialized in multimodal prompt optimiz
 ### Wrong Examples:
 """.strip()
 
+    # === 修改处：增加要求优化器利用辅助知识的说明 ===
     after_example_prompt = f"""
 ### Output Format:
 Text Prompt Analysis:
 - Identify missing information, vague instructions, or ambiguous wording that could have misled the model.
 - Explain how weaknesses in the Text Prompt may have contributed to the wrong output.
-- Suggest specific improvements (e.g., clearer task definition, additional constraints, better examples) to help the model produce the correct answer.
+- Utilize the provided <Auxiliary_Knowledge> to understand domain-specific concepts, and suggest how to incorporate this key knowledge into the improved Text Prompt.
 
 Image Prompt Analysis:
 - If a image Prompt was used, analyze its effectiveness.
@@ -281,9 +285,16 @@ class OptimizationModel:
     def __init__(self, optim_model_setting, mm_generator: MMGenerator, task: BaseTask, logger):
         self.model = get_language_model(optim_model_setting["model_name"])(**optim_model_setting)
         self.mm_generator = mm_generator
-        self.mm_generator_modality = self.mm_generator.target_modality  # "image" or "video" or "molecule"
+        self.mm_generator_modality = self.mm_generator.target_modality
         self.task = task
         self.logger = logger
+        
+        # === 初始化 RAG 模块（请按实际情况替换索引和语料路径） ===
+        self.rag_module = RAGModule(
+            index_path="./datasets/rag_index", 
+            corpus_path="/workspace/yp/MPO/datasets/FlashRAG_datasets/retrieval-corpus/wiki18_100w.jsonl",
+            model_name="/workspace/yp/MPO/datasets/intfloat_e5-base-v2"
+        )
 
     def _clean_response(self, optim_response, tag_name):
         pattern = rf"<{tag_name}>(.*?)</{tag_name}>"
@@ -291,7 +302,6 @@ class OptimizationModel:
         matches = [m.strip() for m in matches]
         return matches[0] if matches else "None"
 
-    # MPO: Cohesive Backpropagation
     def mpo_failure_analysis(self, node, example_prompt):
         analysis_prompt = get_multimodal_analysis_prompt(
             node.instruction,
@@ -300,20 +310,13 @@ class OptimizationModel:
             modality=self.mm_generator_modality,
         )
         analysis = self.model.generate(analysis_prompt)
-
         self.log_information(analysis_prompt, analysis)
-
         return analysis
 
-    # MPO: Generation Operator
     def mpo_optim_generation(self, node, model_responses_num):
         examples = node.get_wrong_examples(model_responses_num)
         example_prompt = self.get_example_prompt(examples, is_response=True)
-
-        # Failure Analysis
         analysis = self.mpo_failure_analysis(node, example_prompt)
-
-        # Prompt Optimization
         generate_prompt = get_multimodal_generation_prompt(
             text_prompt=node.instruction,
             mm_prompt_path=node.mm_prompt_path,
@@ -322,38 +325,25 @@ class OptimizationModel:
             modality=self.mm_generator_modality,
         )
         response = self.model.generate(generate_prompt)
-
         self.log_information(generate_prompt, response)
 
         improved_text_prompt = self._clean_response(response, "improved_text_prompt")
         mm_condition_prompt = self._clean_response(response, f"{self.mm_generator_modality}_generation_prompt")
 
-        # Generate MultiModal Data
-        generated_mm_data = self.generate_mm(
-            mm_condition_prompt,
-            text_prompt=improved_text_prompt,
-        )
-
+        generated_mm_data = self.generate_mm(mm_condition_prompt, text_prompt=improved_text_prompt)
         return improved_text_prompt, generated_mm_data
 
     def generate_mm(self, mm_condition_prompt: str, text_prompt: str = None) -> dict:
-
         generated_mm_path = self.mm_generator(mm_condition_prompt, text_prompt=text_prompt)
-
         return {
             "mm_condition_prompt": mm_condition_prompt,
             "mm_prompt_path": generated_mm_path,
         }
 
-    # MPO: Edit Operator
     def mpo_optim_edit(self, node, model_responses_num):
         examples = node.get_wrong_examples(model_responses_num)
         example_prompt = self.get_example_prompt(examples, is_response=True)
-
-        # Failure Analysis
         analysis = self.mpo_failure_analysis(node, example_prompt)
-
-        # Prompt Optimization
         edit_prompt = get_multimodal_edit_prompt(
             text_prompt=node.instruction,
             mm_prompt_path=node.mm_prompt_path,
@@ -363,38 +353,28 @@ class OptimizationModel:
         )
 
         response = self.model.generate(edit_prompt)
-
         self.log_information(edit_prompt, response)
 
         improved_text_prompt = self._clean_response(response, "improved_text_prompt")
         mm_edit_prompt = self._clean_response(response, f"{self.mm_generator_modality}_edit_prompt")
 
-        # Generate MultiModal Data
-        generated_mm_data = self.edit_mm(
-            mm_edit_prompt,
-            mm_prompt_path=node.mm_prompt_path,
-            text_prompt=improved_text_prompt,
-        )
-
+        generated_mm_data = self.edit_mm(mm_edit_prompt, mm_prompt_path=node.mm_prompt_path, text_prompt=improved_text_prompt)
         return improved_text_prompt, generated_mm_data
 
     def edit_mm(self, mm_edit_prompt: str, mm_prompt_path, text_prompt: str = None):
         assert self.mm_generator_modality in ["image", "molecule"]
         generated_mm_path = self.mm_generator(mm_edit_prompt, mm_prompt_path=mm_prompt_path, text_prompt=text_prompt)
-
         return {
             "mm_condition_prompt": mm_edit_prompt,
             "mm_prompt_path": generated_mm_path,
         }
 
-    # MPO: Mix Operator
     def mpo_optim_mix(self, parents, model_responses_num):
         analyses, example_prompts = [], []
         for parent in parents:
             examples = parent.get_wrong_examples(model_responses_num)
             example_prompt = self.get_example_prompt(examples, is_response=True)
             example_prompts.append(example_prompt)
-
             analysis = self.mpo_failure_analysis(parent, example_prompt)
             analyses.append(analysis)
 
@@ -403,28 +383,19 @@ class OptimizationModel:
         )
 
         response = self.model.generate(mix_prompt)
-
         self.log_information(mix_prompt, response)
 
-        # Process the response
         improved_text_prompts = self._clean_response(response, "mixed_text_prompt")
         mm_mix_prompt = self._clean_response(response, f"{self.mm_generator_modality}_mixing_prompt")
 
-        # Generate Multimodal Data
         generated_mm_data = self.mix_mm(parents, mm_mix_prompt)
-
         return improved_text_prompts, generated_mm_data
 
-    def mix_mm(
-        self,
-        parents,
-        mm_mix_prompt,
-    ):
+    def mix_mm(self, parents, mm_mix_prompt):
         generated_mm_path = self.mm_generator.multimodal_mixing(
             parents=parents,
             mm_mix_prompt=mm_mix_prompt,
         )
-
         return {
             "mm_condition_prompt": mm_mix_prompt,
             "mm_prompt_path": generated_mm_path,
@@ -450,26 +421,37 @@ class OptimizationModel:
         self.logger.info(f"{total_prompt}\n{'-' * 80}\n{response}\n\n")
 
     def get_example_prompt(self, examples, is_response=True):
-            example_prompt = []
-            for example in examples:
-                example_string = self._get_example_string(example, is_response)
-                
-                # 使用 XML 标签将图像特征独立包裹
-                mm_path = self.task.get_mm_path(example)
-                image_features_text = ""
-                if mm_path:
-                    features = self.extract_image_features(mm_path)
-                    if features:
-                        image_features_text = f"<Image_Features>\n{features}\n</Image_Features>\n"
-                
-                # 使用标签严格区分问题、图像特征和模型表现
-                example_content = [
-                    {"type": "text", "text": f"<Example>\n<Query>\n{self.task.get_query(example)}\n</Query>\n"},
-                    {"type": "text", "text": f"{image_features_text}<Model_Performance>\n{example_string}\n</Model_Performance>\n</Example>\n"},
-                ]
-                example_prompt.extend(example_content)
+        example_prompt = []
+        for example in examples:
+            example_string = self._get_example_string(example, is_response)
+            
+            mm_path = self.task.get_mm_path(example)
+            original_query = self.task.get_query(example)
+            
+            image_features_text = ""
+            features = ""
+            if mm_path:
+                features = self.extract_image_features(mm_path)
+                if features:
+                    image_features_text = f"<Image_Features>\n{features}\n</Image_Features>\n"
+            
+            # === RAG 知识召回及封装 ===
+            # E5 模型要求在查询端添加 "query: " 前缀
+            rag_query = f"query:{features}\n{original_query}" if features else f"query: {original_query}"
+            retrieved_knowledge = self.rag_module.retrieve(rag_query, top_k=3)
+            
+            knowledge_text = ""
+            if retrieved_knowledge.strip():
+                knowledge_text = f"<Auxiliary_Knowledge>\n{retrieved_knowledge}\n</Auxiliary_Knowledge>\n"
+            
+            # 整合到 example prompt 中
+            example_content = [
+                {"type": "text", "text": f"<Example>\n<Query>\n{original_query}\n</Query>\n"},
+                {"type": "text", "text": f"{image_features_text}{knowledge_text}<Model_Performance>\n{example_string}\n</Model_Performance>\n</Example>\n"},
+            ]
+            example_prompt.extend(example_content)
 
-            return example_prompt
+        return example_prompt
 
     def _format_answer(self, example):
         answer = self.task.get_answer(example)
@@ -478,7 +460,6 @@ class OptimizationModel:
         return str(answer)
 
     def _get_example_string(self, example, is_response=True):
-        # Format example text content
         if is_response:
             example_string = f'Response: \n{example["response"]}\n\nModel answer: \n{example["model_answer"]}\n\nThe correct answer is : \n{self._format_answer(example)}'
         else:

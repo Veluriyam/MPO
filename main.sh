@@ -14,6 +14,7 @@ ulimit -n 65535
 
 
 METHOD=mpo
+#在这里改实验名称
 EXP_NAME=mpo
 
 TASK="cuckoo" # CUB dataset
