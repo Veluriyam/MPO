@@ -9,12 +9,11 @@ from .model.mmgenerator import MMGenerator
 from .rag_utils import RAGModule
 
 def get_image_feature_extraction_prompt(image_path):
-    text_prompt = """Please answer the following questions about the image to describe its features:
-Q1: What objects does this picture have?
-Q2: What do these objects look like?
+    text_prompt = """Please analyze the image and extract the core entities and distinctive visual features.
+Q1: What are the main objects, species, or biological entities in this picture?
+Q2: What are their most distinctive visual attributes?
 
-
-Directly provide the answers combined as a pure text description without repeating the questions."""
+Output a concise list of core entities and keywords separated by commas, without any conversational filler or repeated questions."""
     
     prompt = [
         {
@@ -436,12 +435,12 @@ class OptimizationModel:
             
             # === RAG 知识召回及封装 ===
             # E5 模型要求在查询端添加 "query: " 前缀
-            rag_query = f"query:{features}\n{original_query}" if features else f"query: {original_query}"
-            retrieved_knowledge = self.rag_module.retrieve(rag_query, top_k=3)
+            # === RAG 知识召回及封装 ===
+            # 仅使用视觉特征进行召回，不再拼接 original_query
+            rag_query = f"query: {features}" if features else ""
             
-            # --- 新增下面这行代码 ---
-            self.logger.info(f"\n====== RAG 召回结果 ======\n[Query]:\n{rag_query}\n\n[Knowledge]:\n{retrieved_knowledge}\n==========================\n")
-            # ------------------------
+            # 如果没有提取到特征（rag_query 为空），则跳过召回以节省时间
+            retrieved_knowledge = self.rag_module.retrieve(rag_query, top_k=3) if rag_query else ""
 
             knowledge_text = ""
             if retrieved_knowledge.strip():
