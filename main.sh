@@ -15,7 +15,7 @@ ulimit -n 65535
 
 METHOD=mpo
 #在这里改实验名称
-EXP_NAME=mpo
+EXP_NAME=testRAG_2026_0406_1152
 
 TASK="cuckoo" # CUB dataset
 BUDGET_PER_PROMPT=100

@@ -291,7 +291,7 @@ class OptimizationModel:
         
         # === 初始化 RAG 模块（请按实际情况替换索引和语料路径） ===
         self.rag_module = RAGModule(
-            index_path="./datasets/rag_index", 
+            index_path="/workspace/yp/MPO/datasets/rag_index/e5_Flat.index", 
             corpus_path="/workspace/yp/MPO/datasets/FlashRAG_datasets/retrieval-corpus/wiki18_100w.jsonl",
             model_name="/workspace/yp/MPO/datasets/intfloat_e5-base-v2"
         )
