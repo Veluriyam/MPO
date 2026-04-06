@@ -50,7 +50,7 @@ def load_args():
     parser.add_argument('--num_prompts_per_round', type=int, default=3, help='number of prompts per evaluation round')
     parser.add_argument('--ucb_c', type=float, default=2.0, help='parameter for UCB / Bayes-UCB')
     parser.add_argument('--bayes_prior_strength', type=float, default=10.0, help='prior strength for Bayes-UCB')
-
+    parser.add_argument("--run_pca", action="store_true", help="在评估结束后提取隐藏状态并绘制PCA图")
     args = parser.parse_args()
     
     # API key should be set in the environment variable.

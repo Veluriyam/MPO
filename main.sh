@@ -38,3 +38,4 @@ python main.py \
     --budget_per_prompt $BUDGET_PER_PROMPT \
     --evaluation_method bayes-ucb \
     --bayes_prior_strength 10
+    --run_pca

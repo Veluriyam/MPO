@@ -4,6 +4,9 @@ import os
 import random
 from .utils import check_mm_type
 
+import numpy as np
+from .model.hf_model import HFModelForPCA
+from PIL import Image
 
 class BaseModel:
     def __init__(self, base_model_setting: dict, task: BaseTask, logger):
@@ -136,6 +139,33 @@ class BaseModel:
             end_idx = len(all_prompts)
             prompt_slices.append((start_idx, end_idx, user_prompt, mm_path))
         return all_prompts, prompt_slices
+    
+    def collect_features_for_pca(self, examples, user_prompt, mm_prompt_path, method_name, save_dir):
+        """
+        收集当前Prompt下的特征并保存
+        """
+        if not hasattr(self, "hf_model"):
+            self.hf_model = HFModelForPCA() # 懒加载HF模型
+
+        prompts_with_images = []
+        for example in examples:
+            query_text = self.task.get_query(example)
+            full_text = f"{user_prompt}\n{query_text}"
+            
+            # 整合参考图和查询图
+            img_path = self.task.get_mm_path(example)
+            img = Image.open(img_path).convert("RGB") if img_path else None
+            # 注意：实际中如果MPO有mm_prompt_path(参考图)，需一并拼接送入processor
+            
+            prompts_with_images.append({"text": full_text, "image": img})
+
+        features = self.hf_model.extract_hidden_states(prompts_with_images)
+        
+        # 保存为 .npy 文件
+        os.makedirs(save_dir, exist_ok=True)
+        save_path = os.path.join(save_dir, f"{method_name}_features.npy")
+        np.save(save_path, features)
+        self.logger.info(f"Saved {method_name} features to {save_path}")
 
 
 forward_log_template = """---------------\tModel Output\t----------------
