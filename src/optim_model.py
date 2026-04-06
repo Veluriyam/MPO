@@ -9,11 +9,18 @@ from .model.mmgenerator import MMGenerator
 from .rag_utils import RAGModule
 
 def get_image_feature_extraction_prompt(image_path):
-    text_prompt = """Please analyze the image and extract the core entities and distinctive visual features.
-Q1: What are the main objects, species, or biological entities in this picture?
-Q2: What are their most distinctive visual attributes?
-CRITICAL RULE: DO NOT describe the background, environment, weather, branches, leaves, or sky. ONLY focus on the core biological entity. Output concisely.
-Output a concise list of core entities and keywords separated by commas, without any conversational filler or repeated questions."""
+    text_prompt = """Please analyze the image and extract ONLY the core biological entity and its visual features.
+
+Task Requirements:
+1. Entity: Identify the main species or object.
+2. Features: List its distinctive colors and specific body parts.
+3. STRICT EXCLUSION: You must completely ignore the environment. Do not describe the background, branches, leaves, weather, or sky.
+
+Output Format:
+Provide ONLY a comma-separated list of core entities and visual keywords. Do not write full sentences. Do not include conversational filler.
+
+Example Output:
+Yellow-billed Cuckoo, yellow beak, white underbelly, brown wings"""
     
     prompt = [
         {
@@ -35,6 +42,10 @@ You are a Prompt Failure Analysis Agent specialized in multimodal prompt optimiz
 - Text Prompt: A task-specific textual instruction for the MLLM.
 - Image Prompt: A reference image that supports task understanding.
 - Input Query: The actual target instance (text, image, or both) on which the MLLM must generate an answer.
+
+### Auxiliary Diagnostic Information(For your analysis ONLY, the MLLM did not see this):
+- <Image_Features>: Textual extraction of the visual elements in the wrong example's image.
+- <Auxiliary_Knowledge>: External domain knowledge retrieved to help you understand the core concepts.
 
 ### Prompts:
 - Text Prompt : {text_prompt}
@@ -89,6 +100,10 @@ You are a Prompt-Improvement Agent specializing in multimodal prompt optimizatio
 - Text Prompt: A task-specific textual instruction for the MLLM.
 - Image Prompt: A reference image that supports task understanding.
 - Input Query: The actual target instance (text, image, or both) on which the MLLM must generate an answer.
+
+### Auxiliary Diagnostic Information(For your analysis ONLY, the MLLM did not see this):
+- <Image_Features>: Textual extraction of the visual elements in the wrong example's image.
+- <Auxiliary_Knowledge>: External domain knowledge retrieved to help you understand the core concepts.
 
 ### Provided Material
 - Text Prompt: {text_prompt}
@@ -149,6 +164,10 @@ You are a Prompt-Improvement Agent specializing in multimodal prompt optimizatio
 - Image Prompt: A reference image that supports task understanding.
 - Input Query: The actual target instance (text, image, or both) on which the MLLM must generate an answer.
 
+### Auxiliary Diagnostic Information(For your analysis ONLY, the MLLM did not see this):
+- <Image_Features>: Textual extraction of the visual elements in the wrong example's image.
+- <Auxiliary_Knowledge>: External domain knowledge retrieved to help you understand the core concepts.
+
 ### Provided Material
 - Text Prompt: {text_prompt}
 - Image Prompt: 
@@ -207,6 +226,10 @@ You are a Prompt-Improvement Agent specializing in multimodal prompt optimizatio
 - Text Prompt: A task-specific textual instruction for the MLLM.
 - Image Prompt: A reference image that supports task understanding.
 - Input Query: The actual target instance (text, image, or both) on which the MLLM must generate an answer.
+
+### Auxiliary Diagnostic Information(For your analysis ONLY, the MLLM did not see this):
+- <Image_Features>: Textual extraction of the visual elements in the wrong example's image.
+- <Auxiliary_Knowledge>: External domain knowledge retrieved to help you understand the core concepts.
 
 ### Provided Material
 #### Prompt A
@@ -471,8 +494,10 @@ class OptimizationModel:
             
             # 整合到 example prompt 中
             example_content = [
-                {"type": "text", "text": f"<Example>\n<Query>\n{original_query}\n</Query>\n"},
-                {"type": "text", "text": f"{image_features_text}{knowledge_text}<Model_Performance>\n{example_string}\n</Model_Performance>\n</Example>\n"},
+                {"type": "text", "text": f"<Example>\n"},
+                {"type": "text", "text": f"--- Original Input Seen by MLLM ---\n<Query>\n{original_query}\n</Query>\n"},
+                {"type": "text", "text": f"--- Auxiliary Info For Your Analysis (The MLLM did NOT see this) ---\n{image_features_text}{knowledge_text}"},
+                {"type": "text", "text": f"--- Model Performance ---\n{example_string}\n</Example>\n"},
             ]
             example_prompt.extend(example_content)
 

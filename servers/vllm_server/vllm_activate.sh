@@ -4,7 +4,7 @@ echo "VLLM_API_KEY: $VLLM_API_KEY"
 ulimit -n 65535
 
 # Define multiple GPU IDs as an array (without commas/spaces)
-GPU_NUMS=(1)
+GPU_NUMS=(2)
 
 # Port: Use the first GPU number as the suffix
 PORT_SUFFIX="${GPU_NUMS[0]}"
