@@ -313,6 +313,10 @@ class OptimizationModel:
 
     def mpo_optim_generation(self, node, model_responses_num):
         examples = node.get_wrong_examples(model_responses_num)
+
+        # --- 新增：提取并记录当前用到的原始错图路径 ---
+        wrong_image_paths = [self.task.get_mm_path(ex) for ex in examples]
+
         example_prompt = self.get_example_prompt(examples, is_response=True)
         analysis = self.mpo_failure_analysis(node, example_prompt)
         generate_prompt = get_multimodal_generation_prompt(
@@ -329,6 +333,11 @@ class OptimizationModel:
         mm_condition_prompt = self._clean_response(response, f"{self.mm_generator_modality}_generation_prompt")
 
         generated_mm_data = self.generate_mm(mm_condition_prompt, text_prompt=improved_text_prompt)
+
+        # --- 新增：在日志中打印映射关系 ---
+        self.logger.info(f"👉 [Mapping] Generated Reference Image: {generated_mm_data['mm_prompt_path']}")
+        self.logger.info(f"👉 [Mapping] Based on Original Wrong Images: {wrong_image_paths}\n")
+
         return improved_text_prompt, generated_mm_data
 
     def generate_mm(self, mm_condition_prompt: str, text_prompt: str = None) -> dict:
@@ -340,6 +349,9 @@ class OptimizationModel:
 
     def mpo_optim_edit(self, node, model_responses_num):
         examples = node.get_wrong_examples(model_responses_num)
+
+        wrong_image_paths = [self.task.get_mm_path(ex) for ex in examples] # 新增
+
         example_prompt = self.get_example_prompt(examples, is_response=True)
         analysis = self.mpo_failure_analysis(node, example_prompt)
         edit_prompt = get_multimodal_edit_prompt(
@@ -357,6 +369,9 @@ class OptimizationModel:
         mm_edit_prompt = self._clean_response(response, f"{self.mm_generator_modality}_edit_prompt")
 
         generated_mm_data = self.edit_mm(mm_edit_prompt, mm_prompt_path=node.mm_prompt_path, text_prompt=improved_text_prompt)
+        # --- 新增日志 ---
+        self.logger.info(f"👉 [Mapping] Edited Reference Image: {generated_mm_data['mm_prompt_path']}")
+        self.logger.info(f"👉 [Mapping] Based on Original Wrong Images: {wrong_image_paths}\n")
         return improved_text_prompt, generated_mm_data
 
     def edit_mm(self, mm_edit_prompt: str, mm_prompt_path, text_prompt: str = None):
@@ -369,8 +384,11 @@ class OptimizationModel:
 
     def mpo_optim_mix(self, parents, model_responses_num):
         analyses, example_prompts = [], []
+        wrong_image_paths_all = [] # 新增
+
         for parent in parents:
             examples = parent.get_wrong_examples(model_responses_num)
+            wrong_image_paths_all.extend([self.task.get_mm_path(ex) for ex in examples]) # 新增
             example_prompt = self.get_example_prompt(examples, is_response=True)
             example_prompts.append(example_prompt)
             analysis = self.mpo_failure_analysis(parent, example_prompt)
@@ -387,6 +405,11 @@ class OptimizationModel:
         mm_mix_prompt = self._clean_response(response, f"{self.mm_generator_modality}_mixing_prompt")
 
         generated_mm_data = self.mix_mm(parents, mm_mix_prompt)
+
+        # --- 新增日志 ---
+        self.logger.info(f"👉 [Mapping] Mixed Reference Image: {generated_mm_data['mm_prompt_path']}")
+        self.logger.info(f"👉 [Mapping] Based on Original Wrong Images: {wrong_image_paths_all}\n")
+
         return improved_text_prompts, generated_mm_data
 
     def mix_mm(self, parents, mm_mix_prompt):
