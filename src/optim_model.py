@@ -9,11 +9,10 @@ from .model.mmgenerator import MMGenerator
 from .rag_utils import RAGModule
 
 def get_image_feature_extraction_prompt(image_path):
-    text_prompt = """Please answer the following four questions about the image to describe its features:
+    text_prompt = """Please answer the following questions about the image to describe its features:
 Q1: What objects does this picture have?
 Q2: What do these objects look like?
-Q3: What is the background of this picture?
-Q4: What feelings do the background and objects show?
+
 
 Directly provide the answers combined as a pure text description without repeating the questions."""
     
@@ -440,6 +439,10 @@ class OptimizationModel:
             rag_query = f"query:{features}\n{original_query}" if features else f"query: {original_query}"
             retrieved_knowledge = self.rag_module.retrieve(rag_query, top_k=3)
             
+            # --- 新增下面这行代码 ---
+            self.logger.info(f"\n====== RAG 召回结果 ======\n[Query]:\n{rag_query}\n\n[Knowledge]:\n{retrieved_knowledge}\n==========================\n")
+            # ------------------------
+
             knowledge_text = ""
             if retrieved_knowledge.strip():
                 knowledge_text = f"<Auxiliary_Knowledge>\n{retrieved_knowledge}\n</Auxiliary_Knowledge>\n"

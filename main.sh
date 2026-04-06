@@ -32,7 +32,7 @@ python main.py \
     --mm_generator_model_name $MM_GENERATOR_MODEL \
     --search_method $METHOD \
     --iteration 13 \
-    --beam_width 3 \
+    --beam_width 1 \
     --model_responses_num 3 \
     --seed 42 \
     --budget_per_prompt $BUDGET_PER_PROMPT \
