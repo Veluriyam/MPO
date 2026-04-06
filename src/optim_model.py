@@ -12,7 +12,7 @@ def get_image_feature_extraction_prompt(image_path):
     text_prompt = """Please analyze the image and extract the core entities and distinctive visual features.
 Q1: What are the main objects, species, or biological entities in this picture?
 Q2: What are their most distinctive visual attributes?
-
+CRITICAL RULE: DO NOT describe the background, environment, weather, branches, leaves, or sky. ONLY focus on the core biological entity. Output concisely.
 Output a concise list of core entities and keywords separated by commas, without any conversational filler or repeated questions."""
     
     prompt = [
@@ -477,5 +477,6 @@ class OptimizationModel:
             return ""
         
         feature_prompt = get_image_feature_extraction_prompt(image_path)
+        self.logger.info(f"Extracting image features with prompt:\n{feature_prompt}\n")
         description = self.model.generate(feature_prompt)
         return description

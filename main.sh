@@ -15,7 +15,7 @@ ulimit -n 65535
 
 METHOD=mpo
 #在这里改实验名称
-EXP_NAME=testRAG_2026_0406_1152
+EXP_NAME=compareWithOriginMPO_2026_0406_2006
 
 TASK="cuckoo" # CUB dataset
 BUDGET_PER_PROMPT=100
@@ -32,7 +32,7 @@ python main.py \
     --mm_generator_model_name $MM_GENERATOR_MODEL \
     --search_method $METHOD \
     --iteration 13 \
-    --beam_width 1 \
+    --beam_width 3 \
     --model_responses_num 3 \
     --seed 42 \
     --budget_per_prompt $BUDGET_PER_PROMPT \
