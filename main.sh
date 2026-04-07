@@ -15,7 +15,7 @@ ulimit -n 65535
 
 METHOD=mpo
 #在这里改实验名称
-EXP_NAME=RS_DPL_Kis5
+EXP_NAME=RS_DPL_Kis10
 
 TASK="cuckoo" # CUB dataset
 BUDGET_PER_PROMPT=100
