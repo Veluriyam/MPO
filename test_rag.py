@@ -13,7 +13,7 @@ def get_knowledge_for_features():
     # features = "Grey head, white throat, orange-rufous belly, grey-brown wings"
     # features="bird,Grey head, black supercilium / mask, white throat, orange-rufous belly, black curved beak, grey-brown wings, black eyes, long tail, perching on tree branch"
     # features="Grey head, White throat, Orange-rufous belly, Black curved beak, Grey-brown wings"
-    features=" Grey head, White throat, Orange-rufous belly, Black curved beak, Grey-brown wings,bird"
+    features=" Coccyzus minor,Grey head, White throat, Orange-rufous belly, Black curved beak, Grey-brown wings,bird,Coccyzus minor"
 
     # 3. 执行检索
     # top_k 指定返回最相关的外部知识条数
