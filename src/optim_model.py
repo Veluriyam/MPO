@@ -486,7 +486,7 @@ class OptimizationModel:
             rag_query = f"query: {features}" if features else ""
             
             # 如果没有提取到特征（rag_query 为空），则跳过召回以节省时间
-            retrieved_knowledge = self.rag_module.retrieve(rag_query, top_k=3) if rag_query else ""
+            retrieved_knowledge = self.rag_module.retrieve(rag_query, top_k=1) if rag_query else ""
 
             knowledge_text = ""
             if retrieved_knowledge.strip():

@@ -15,7 +15,7 @@ ulimit -n 65535
 
 METHOD=mpo
 #在这里改实验名称
-EXP_NAME=withoutRAG_onlyReminder_2026_0406_2259
+EXP_NAME=RS_DPL_Kis1
 
 TASK="cuckoo" # CUB dataset
 BUDGET_PER_PROMPT=100
@@ -27,7 +27,7 @@ python main.py \
     --task_name $TASK \
     --log_dir $LOG_DIR \
     --base_model_name $BASE_MODEL \
-    --base_model_port 13142 \
+    --base_model_port 13141 \
     --optim_model_name $OPTIM_MODEL \
     --mm_generator_model_name $MM_GENERATOR_MODEL \
     --search_method $METHOD \
