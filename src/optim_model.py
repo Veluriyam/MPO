@@ -471,11 +471,16 @@ class OptimizationModel:
 
     def get_example_prompt(self, examples, is_response=True):
         example_prompt = []
-        for example in examples:
+        # 使用 enumerate 增加索引 i，方便在日志中区分样本
+        for i, example in enumerate(examples):
             example_string = self._get_example_string(example, is_response)
             
             mm_path = self.task.get_mm_path(example)
             original_query = self.task.get_query(example)
+            
+            # --- 新增日志：标记当前处理的错误样本 ---
+            self.logger.info(f"--- Processing Wrong Example {i+1} ---")
+            self.logger.info(f"Image Path: {mm_path}")
             
             image_features_text = ""
             features = ""
@@ -483,10 +488,11 @@ class OptimizationModel:
                 features = self.extract_image_features(mm_path)
                 if features:
                     image_features_text = f"<Image_Features>\n{features}\n</Image_Features>\n"
+                    # --- 新增日志：记录该样本提取的特征 ---
+                    self.logger.info(f"[Example {i+1}] Extracted Features: {features}")
             
             # === RAG 知识召回及封装 ===
             # E5 模型要求在查询端添加 "query: " 前缀
-            # === RAG 知识召回及封装 ===
             # 仅使用视觉特征进行召回，不再拼接 original_query
             rag_query = f"query: {features}" if features else ""
             
@@ -496,8 +502,10 @@ class OptimizationModel:
             knowledge_text = ""
             if retrieved_knowledge.strip():
                 knowledge_text = f"<Auxiliary_Knowledge>\n{retrieved_knowledge}\n</Auxiliary_Knowledge>\n"
+                # --- 新增日志：记录该样本召回的知识 ---
+                self.logger.info(f"[Example {i+1}] Retrieved Knowledge: {retrieved_knowledge}")
             
-            # 整合到 example prompt 中
+            # 整合到 example prompt 中 (严格保持原样，不修改发给MLLM的内容)
             example_content = [
                 {"type": "text", "text": f"<Example>\n"},
                 {"type": "text", "text": f"--- Original Input Seen by MLLM ---\n<Query>\n{original_query}\n</Query>\n"},
