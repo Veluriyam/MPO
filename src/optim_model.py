@@ -4,7 +4,7 @@ from .model import get_language_model
 from .tasks import BaseTask
 from .utils import check_mm_type
 from .model.mmgenerator import MMGenerator
-
+import os
 # 导入新增的 RAG 模块
 from .rag_utils import RAGModule
 
@@ -303,18 +303,23 @@ Your task is review the failure analysis carefully to understand the issues and 
 
 
 class OptimizationModel:
-    def __init__(self, optim_model_setting, mm_generator: MMGenerator, task: BaseTask, logger):
+    # 增加 log_dir 参数
+    def __init__(self, optim_model_setting, mm_generator: MMGenerator, task: BaseTask, logger, log_dir):
         self.model = get_language_model(optim_model_setting["model_name"])(**optim_model_setting)
         self.mm_generator = mm_generator
         self.mm_generator_modality = self.mm_generator.target_modality
         self.task = task
         self.logger = logger
         
-        # === 初始化 RAG 模块（请按实际情况替换索引和语料路径） ===
+        # 拼接 RAG 日志文件的绝对路径
+        rag_log_path = os.path.join(log_dir, "rag_retrieval_scores.jsonl")
+        
+        # === 初始化 RAG 模块时传入 log_file ===
         self.rag_module = RAGModule(
             index_path="/workspace/yp/MPO/datasets/rag_index/e5_Flat.index", 
             corpus_path="/workspace/yp/MPO/datasets/FlashRAG_datasets/retrieval-corpus/wiki18_100w.jsonl",
-            model_name="/workspace/yp/MPO/datasets/intfloat_e5-base-v2"
+            model_name="/workspace/yp/MPO/datasets/intfloat_e5-base-v2",
+            log_file=rag_log_path  # 新增此行
         )
 
     def _clean_response(self, optim_response, tag_name):
@@ -486,7 +491,7 @@ class OptimizationModel:
             rag_query = f"query: {features}" if features else ""
             
             # 如果没有提取到特征（rag_query 为空），则跳过召回以节省时间
-            retrieved_knowledge = self.rag_module.retrieve(rag_query, top_k=1) if rag_query else ""
+            retrieved_knowledge = self.rag_module.retrieve(rag_query, top_k=5) if rag_query else ""
 
             knowledge_text = ""
             if retrieved_knowledge.strip():

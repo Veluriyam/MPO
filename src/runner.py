@@ -54,7 +54,7 @@ class Runner:
         self.mm_generator = get_mm_model(mm_generator_setting["mm_generator_model_name"])(
             **mm_generator_setting, logger=self.logger
         )
-        self.optim_model = OptimizationModel(optim_model_setting, self.mm_generator, self.task, self.logger)
+        self.optim_model = OptimizationModel(optim_model_setting, self.mm_generator, self.task, self.logger, self.log_dir)
         self.evaluator = get_evaluator(evaluator_setting["evaluation_method"])(
             self.base_model, self.task, logger=self.logger, **evaluator_setting
         )
@@ -74,23 +74,23 @@ class Runner:
         self.search_algorithm.train()
 
         # === 新增：执行PCA可视化特征收集 ===
-        if getattr(self.args, "run_pca", False):
-            self.logger.info("Extracting hidden states for PCA...")
-            feature_dir = os.path.join(self.log_dir, "pca_features")
+        # if getattr(self.args, "run_pca", False):
+        #     self.logger.info("Extracting hidden states for PCA...")
+        #     feature_dir = os.path.join(self.log_dir, "pca_features")
             
-            # 获取最优的MPO prompt进行特征提取
-            best_node = self.search_algorithm.best_node 
-            self.base_model.collect_features_for_pca(
-                self.task.test_data, 
-                best_node.instruction, 
-                best_node.mm_prompt_path, 
-                method_name="MPO", 
-                save_dir=feature_dir
-            )
-            # 可在此处增加对比方法（如原始Text-only）的 collect 调用...
+        #     # 获取最优的MPO prompt进行特征提取
+        #     best_node = self.search_algorithm.best_node 
+        #     self.base_model.collect_features_for_pca(
+        #         self.task.test_data, 
+        #         best_node.instruction, 
+        #         best_node.mm_prompt_path, 
+        #         method_name="MPO", 
+        #         save_dir=feature_dir
+        #     )
+        #     # 可在此处增加对比方法（如原始Text-only）的 collect 调用...
             
-            # 绘制PCA
-            plot_hidden_states_pca(feature_dir, os.path.join(self.log_dir, "pca_figure.png"))
+        #     # 绘制PCA
+        #     plot_hidden_states_pca(feature_dir, os.path.join(self.log_dir, "pca_figure.png"))
         # ==================================
 
         end_time = time.time()
