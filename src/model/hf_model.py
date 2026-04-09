@@ -1,12 +1,14 @@
 import torch
 import numpy as np
-from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
+# 把 Qwen2VLForConditionalGeneration 替换掉
+from transformers import AutoProcessor, Qwen2_5_VLForConditionalGeneration
 
 class HFModelForPCA:
     def __init__(self, model_path="Qwen/Qwen2.5-VL-7B-Instruct"):
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.processor = AutoProcessor.from_pretrained(model_path)
-        self.model = Qwen2VLForConditionalGeneration.from_pretrained(
+        # 替换原有的 Qwen2VLForConditionalGeneration
+        self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
             model_path, 
             torch_dtype=torch.float16, 
             device_map="auto"
